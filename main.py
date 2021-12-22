@@ -66,16 +66,13 @@ def has_moved(i1, i2):
         dif = sum(abs(p1-p2) for p1,p2 in pairs)
     else:
         dif = sum(abs(c1-c2) for p1,p2 in pairs for c1,c2 in zip(p1,p2))
- 
+
     ncomponents = i1.size[0] * i1.size[1] * 3
     percentage = (dif / 255.0 * 100) / ncomponents
 
     print(percentage)
-    
-    if percentage < 1:
-        return False
-    else:
-        return True
+
+    return percentage >= 1
 
 
 # init variables
@@ -110,14 +107,14 @@ pool = ThreadPool(processes=1)
 # define a video capture object
 vid = cv2.VideoCapture(0)
 
-while(True):
+while True:
       
     # Capture the video frame
     # by frame
     ret, frame = vid.read()
 
     #diff_frame = cv2.absdiff(old_frame, frame)
-    
+
     # Converting BGR-> Gray and making frame blur
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
     bin = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 121, 100)
@@ -140,7 +137,7 @@ while(True):
         pad = max(h-w, 0)
         x, w = x - (pad // 2), w + pad
         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0))
-        
+
         bin_roi = bin[y:,x:][:h,:w]
         m = bin_roi != 0
         if not 0.0 < m.mean() < 0.8:
@@ -166,11 +163,10 @@ while(True):
         sample = scaler.fit_transform(reshape)
 
         # make predictions
-        if old_frame is not None:
-            if not has_moved(img_pil, old_frame):
-                async_results = pool.apply_async(make_predict, (sample, old_digit,))
-                digit, lr_y, knn_y, rf_y, svc_y = async_results.get()
-                old_digit = digit
+        if old_frame is not None and not has_moved(img_pil, old_frame):
+            async_results = pool.apply_async(make_predict, (sample, old_digit,))
+            digit, lr_y, knn_y, rf_y, svc_y = async_results.get()
+            old_digit = digit
 
 
         if async_results is not None:
@@ -183,7 +179,7 @@ while(True):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             cv2.putText(frame, "SVC :  " + svc_y, (10, 410),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        
+
         old_frame = img_pil
 
     # Display the resulting frame
@@ -195,7 +191,7 @@ while(True):
     # desired button of your choice
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-  
+
 # After the loop release the cap object
 vid.release()
 
